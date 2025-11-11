@@ -1,0 +1,72 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.buildpath
+.classpath
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.bak
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Moodle specific
+moodledata/
+config.php
+
+# PHP
+vendor/
+composer.phar
+composer.lock
+
+# Node modules (if using any JS build tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Build artifacts
+dist/
+build/
+
+# Test files
+phpunit.xml
+.phpunit.result.cache
+coverage/
+
+# Empty placeholder files (these were in your repo)
+id
+instance
+hostid
+meetingid
+joinurl
+join_url
+password
+
+# Backup files
+*.php.bak
+*.sql.bak
