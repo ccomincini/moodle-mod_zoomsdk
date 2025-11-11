@@ -39,59 +39,61 @@ function xmldb_zoomsdk_upgrade($oldversion) {
         // Define fields to be added to zoomsdk table.
         $table = new xmldb_table('zoomsdk');
 
-        // Add meeting_type field.
-        $field = new xmldb_field('meeting_type', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '2', 'host_id');
+        // Add meeting_type field after hostid.
+        $field = new xmldb_field('meeting_type', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '2', 'hostid');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         // Make start_time nullable for type 8 meetings.
         $field = new xmldb_field('start_time', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'meeting_type');
-        $dbman->change_field_notnull($table, $field);
-
-        // Add recurrence_type field.
-        $field = new xmldb_field('recurrence_type', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'join_url');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add repeat_interval field.
+        // Add recurrence_type field after joinurl.
+        $field = new xmldb_field('recurrence_type', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'joinurl');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Add repeat_interval field after recurrence_type.
         $field = new xmldb_field('repeat_interval', XMLDB_TYPE_INTEGER, '3', null, null, null, null, 'recurrence_type');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add weekly_days field.
+        // Add weekly_days field after repeat_interval.
         $field = new xmldb_field('weekly_days', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'repeat_interval');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add monthly_day field.
+        // Add monthly_day field after weekly_days.
         $field = new xmldb_field('monthly_day', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'weekly_days');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add monthly_week field.
+        // Add monthly_week field after monthly_day.
         $field = new xmldb_field('monthly_week', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'monthly_day');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add monthly_week_day field.
+        // Add monthly_week_day field after monthly_week.
         $field = new xmldb_field('monthly_week_day', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'monthly_week');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add end_times field.
+        // Add end_times field after monthly_week_day.
         $field = new xmldb_field('end_times', XMLDB_TYPE_INTEGER, '3', null, null, null, null, 'monthly_week_day');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        // Add end_date_time field.
+        // Add end_date_time field after end_times.
         $field = new xmldb_field('end_date_time', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'end_times');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
