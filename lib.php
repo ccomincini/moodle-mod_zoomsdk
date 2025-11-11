@@ -60,14 +60,14 @@ function zoomsdk_add_instance(stdClass $moduleinstance, $mform = null): int {
     $moduleinstance->timecreated = time();
     $moduleinstance->timemodified = time();
 
-// Verifica configurazione mod_zoom (prova entrambi i formati).
-$accountid = get_config('zoom', 'accountid') ?: get_config('mod_zoom', 'accountid');
-$clientid = get_config('zoom', 'clientid') ?: get_config('mod_zoom', 'clientid');
-$clientsecret = get_config('zoom', 'clientsecret') ?: get_config('mod_zoom', 'clientsecret');
+    // Verify Zoom configuration.
+    $accountid = get_config('zoom', 'accountid') ?: get_config('mod_zoom', 'accountid');
+    $clientid = get_config('zoom', 'clientid') ?: get_config('mod_zoom', 'clientid');
+    $clientsecret = get_config('zoom', 'clientsecret') ?: get_config('mod_zoom', 'clientsecret');
 
-if (empty($accountid) || empty($clientid) || empty($clientsecret)) {
-    throw new moodle_exception('zoom_not_configured', 'mod_zoomsdk');
-}
+    if (empty($accountid) || empty($clientid) || empty($clientsecret)) {
+        throw new moodle_exception('zoom_not_configured', 'mod_zoomsdk');
+    }
 
     // Get Zoom user.
     $zoomuser = zoomsdk_get_zoom_user($USER->email);
@@ -83,7 +83,22 @@ if (empty($accountid) || empty($clientid) || empty($clientsecret)) {
         $moduleinstance->hostid = $zoomuser->id;
         $moduleinstance->joinurl = $meeting->join_url;
         $moduleinstance->password = $meeting->password ?? '';
-        $moduleinstance->starttime = $moduleinstance->starttime;
+        
+        // Store meeting type and start time.
+        $moduleinstance->meeting_type = $moduleinstance->meeting_type ?? 2;
+        $moduleinstance->start_time = $moduleinstance->start_time ?? null;
+
+        // Store recurrence settings if applicable.
+        if (in_array($moduleinstance->meeting_type, [3, 8])) {
+            $moduleinstance->recurrence_type = $moduleinstance->recurrence_type ?? null;
+            $moduleinstance->repeat_interval = $moduleinstance->repeat_interval ?? null;
+            $moduleinstance->weekly_days = $moduleinstance->weekly_days ?? null;
+            $moduleinstance->monthly_day = $moduleinstance->monthly_day ?? null;
+            $moduleinstance->monthly_week = $moduleinstance->monthly_week ?? null;
+            $moduleinstance->monthly_week_day = $moduleinstance->monthly_week_day ?? null;
+            $moduleinstance->end_times = $moduleinstance->end_times ?? null;
+            $moduleinstance->end_date_time = $moduleinstance->end_date_time ?? null;
+        }
 
     } catch (Exception $e) {
         throw new moodle_exception('failedtocreatemeeting', 'mod_zoomsdk', '', null, $e->getMessage());
@@ -107,6 +122,32 @@ function zoomsdk_update_instance(stdClass $moduleinstance, $mform = null): bool 
 
     $moduleinstance->timemodified = time();
     $moduleinstance->id = $moduleinstance->instance;
+
+    // Store meeting type and start time.
+    $moduleinstance->meeting_type = $moduleinstance->meeting_type ?? 2;
+    $moduleinstance->start_time = $moduleinstance->start_time ?? null;
+
+    // Store recurrence settings if applicable.
+    if (in_array($moduleinstance->meeting_type, [3, 8])) {
+        $moduleinstance->recurrence_type = $moduleinstance->recurrence_type ?? null;
+        $moduleinstance->repeat_interval = $moduleinstance->repeat_interval ?? null;
+        $moduleinstance->weekly_days = $moduleinstance->weekly_days ?? null;
+        $moduleinstance->monthly_day = $moduleinstance->monthly_day ?? null;
+        $moduleinstance->monthly_week = $moduleinstance->monthly_week ?? null;
+        $moduleinstance->monthly_week_day = $moduleinstance->monthly_week_day ?? null;
+        $moduleinstance->end_times = $moduleinstance->end_times ?? null;
+        $moduleinstance->end_date_time = $moduleinstance->end_date_time ?? null;
+    } else {
+        // Clear recurrence fields for non-recurring meetings.
+        $moduleinstance->recurrence_type = null;
+        $moduleinstance->repeat_interval = null;
+        $moduleinstance->weekly_days = null;
+        $moduleinstance->monthly_day = null;
+        $moduleinstance->monthly_week = null;
+        $moduleinstance->monthly_week_day = null;
+        $moduleinstance->end_times = null;
+        $moduleinstance->end_date_time = null;
+    }
 
     return $DB->update_record('zoomsdk', $moduleinstance);
 }
