@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/zoomsdk/db" VERSION="20251110" COMMENT="Zoom SDK meeting module">
+<XMLDB PATH="mod/zoomsdk/db" VERSION="20251111" COMMENT="Zoom SDK meeting module">
   <TABLES>
     <TABLE NAME="zoomsdk" COMMENT="Zoom SDK meetings">
       <FIELDS>
@@ -10,10 +10,19 @@
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="meeting_id" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="host_id" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="start_time" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="meeting_type" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="2" SEQUENCE="false" COMMENT="1=instant, 2=scheduled, 3=recurring fixed, 8=recurring no fixed"/>
+        <FIELD NAME="start_time" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Optional for type 8"/>
         <FIELD NAME="duration" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="password" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="join_url" TYPE="char" LENGTH="500" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="recurrence_type" TYPE="int" LENGTH="2" NOTNULL="false" SEQUENCE="false" COMMENT="1=daily, 2=weekly, 3=monthly"/>
+        <FIELD NAME="repeat_interval" TYPE="int" LENGTH="3" NOTNULL="false" SEQUENCE="false" COMMENT="Repeat every X days/weeks/months"/>
+        <FIELD NAME="weekly_days" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Comma-separated: 1,2,3,4,5,6,7"/>
+        <FIELD NAME="monthly_day" TYPE="int" LENGTH="2" NOTNULL="false" SEQUENCE="false" COMMENT="Day of month 1-31"/>
+        <FIELD NAME="monthly_week" TYPE="int" LENGTH="2" NOTNULL="false" SEQUENCE="false" COMMENT="-1=last, 1=first, 2=second, 3=third, 4=fourth"/>
+        <FIELD NAME="monthly_week_day" TYPE="int" LENGTH="2" NOTNULL="false" SEQUENCE="false" COMMENT="1-7 (Sun-Sat)"/>
+        <FIELD NAME="end_times" TYPE="int" LENGTH="3" NOTNULL="false" SEQUENCE="false" COMMENT="Number of occurrences, max 60"/>
+        <FIELD NAME="end_date_time" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="End by timestamp"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
@@ -23,6 +32,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="meeting_id" UNIQUE="false" FIELDS="meeting_id"/>
+        <INDEX NAME="meeting_type" UNIQUE="false" FIELDS="meeting_type"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="zoomsdk_attendance" COMMENT="Attendance tracking">
