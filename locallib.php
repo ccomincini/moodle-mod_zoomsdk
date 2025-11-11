@@ -67,8 +67,7 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
 
     $meetingdata = [
         'topic' => $data->name,
-        'type' => 2, // Scheduled meeting.
-        'start_time' => gmdate('Y-m-d\TH:i:s\Z', $data->starttime),
+        'type' => $data->meeting_type ?? 2, // Default to scheduled.
         'duration' => (int) ceil($data->duration / 60), // Convert seconds to minutes.
         'settings' => [
             'host_video' => true,
@@ -80,6 +79,52 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
         ],
     ];
 
+    // Add start_time for scheduled and recurring with fixed time.
+    if (in_array($data->meeting_type, [2, 3]) && !empty($data->start_time)) {
+        $meetingdata['start_time'] = gmdate('Y-m-d\TH:i:s\Z', $data->start_time);
+    }
+
+    // Add recurrence settings for recurring meetings.
+    if (in_array($data->meeting_type, [3, 8])) {
+        $recurrence = [
+            'type' => $data->recurrence_type ?? 1, // Default to daily.
+        ];
+
+        // Repeat interval.
+        if (!empty($data->repeat_interval)) {
+            $recurrence['repeat_interval'] = (int) $data->repeat_interval;
+        }
+
+        // Weekly days.
+        if ($data->recurrence_type == 2 && !empty($data->weekly_days)) {
+            $recurrence['weekly_days'] = $data->weekly_days;
+        }
+
+        // Monthly day.
+        if ($data->recurrence_type == 3 && !empty($data->monthly_day)) {
+            $recurrence['monthly_day'] = (int) $data->monthly_day;
+        }
+
+        // Monthly week.
+        if ($data->recurrence_type == 3 && !empty($data->monthly_week)) {
+            $recurrence['monthly_week'] = (int) $data->monthly_week;
+        }
+
+        // Monthly week day.
+        if ($data->recurrence_type == 3 && !empty($data->monthly_week_day)) {
+            $recurrence['monthly_week_day'] = (int) $data->monthly_week_day;
+        }
+
+        // End times or end date time.
+        if (!empty($data->end_times)) {
+            $recurrence['end_times'] = (int) $data->end_times;
+        } else if (!empty($data->end_date_time)) {
+            $recurrence['end_date_time'] = gmdate('Y-m-d\TH:i:s\Z', $data->end_date_time);
+        }
+
+        $meetingdata['recurrence'] = $recurrence;
+    }
+
     $url = "users/{$hostuserid}/meetings";
 
     try {
@@ -89,11 +134,10 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
         $method->setAccessible(true);
         $response = $method->invoke($service, $url, $meetingdata, 'post');
 
-        // Verifica che la risposta contenga i dati necessari
+        // Verify response contains necessary data.
         if (empty($response->id)) {
             throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 'Meeting ID is empty in API response');
         }
-
 
         return $response;
     } catch (Exception $e) {
@@ -121,9 +165,11 @@ function zoomsdk_delete_zoom_meeting(string $meetingid): void {
         $service = new \mod_zoom\webservice();
         $service->delete_meeting($meetingid, false);
     } catch (Exception $e) {
-        // Ignora errore se il meeting non esiste più
-        if ($response['code'] !== 3001 && $response['code'] !== 300) { // 3001 = Meeting not found
-            debugging("Failed to delete Zoom meeting: " . $response['message'], DEBUG_NORMAL);
+        // Ignore error if meeting doesn't exist anymore.
+        $message = $e->getMessage();
+        // Check if error is "meeting not found" (code 3001 or 300).
+        if (strpos($message, '3001') === false && strpos($message, '300') === false) {
+            debugging("Failed to delete Zoom meeting: " . $message, DEBUG_NORMAL);
         }
     }
 }
