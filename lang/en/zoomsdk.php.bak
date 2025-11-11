@@ -1,0 +1,23 @@
+<?php
+defined('MOODLE_INTERNAL') || die();
+
+$string['pluginname'] = 'Zoom SDK Meeting';
+$string['modulename'] = 'Zoom SDK Meeting';
+$string['modulenameplural'] = 'Zoom SDK Meetings';
+$string['pluginadministration'] = 'Zoom SDK administration';
+
+$string['meetingname'] = 'Meeting name';
+$string['meetingsettings'] = 'Meeting settings';
+$string['starttime'] = 'Start time';
+$string['duration'] = 'Duration';
+$string['joinmeeting'] = 'Join Meeting (Embedded)';
+
+$string['sdkkey'] = 'SDK Key';
+$string['sdkkey_desc'] = 'Your Zoom Meeting SDK Key';
+$string['sdksecret'] = 'SDK Secret';
+$string['sdksecret_desc'] = 'Your Zoom Meeting SDK Secret';
+
+$string['zoom_not_configured'] = 'Zoom API not configured';
+$string['zoom_user_not_found'] = 'Zoom user not found';
+
+$string['privacy:metadata'] = 'The Zoom SDK Meeting module stores attendance data.';
