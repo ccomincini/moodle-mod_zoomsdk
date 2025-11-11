@@ -1,8 +1,7 @@
 <?php
-// Stringhe italiane Zoom SDK Meeting (completo).
+// Stringhe italiane Zoom SDK Meeting: completo di chiave modulename/modulenameplural obbligatorie per core Moodle.
 // ... (altre stringhe già presenti) ...
-$string['sdkkey'] = 'SDK Key';
-$string['sdkkey_desc'] = 'La tua Zoom Meeting SDK Key da marketplace.zoom.us';
-$string['sdksecret'] = 'SDK Secret';
-$string['sdksecret_desc'] = 'Il tuo Zoom Meeting SDK Secret (mantienilo riservato!)';
+$string['pluginname'] = 'Riunione Zoom SDK';
+$string['modulename'] = 'Riunione Zoom SDK';
+$string['modulenameplural'] = 'Riunioni Zoom SDK';
 // ... (altre stringhe già presenti) ...
