@@ -196,6 +196,7 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
  */
     function zoomsdk_get_zoom_user(string $email) {
         try {
+                    } // Chiude il try block
                     // DEBUG DETTAGLIATO
         echo "<pre style='background: lightblue; padding: 20px; border: 3px solid blue;'>";
         echo "=== DEBUG GET_USER ZOOM ===\n";
