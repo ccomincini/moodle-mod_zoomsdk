@@ -194,59 +194,20 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
 /**
  * Ottieni utente Zoom da email
  */
-    function zoomsdk_get_zoom_user(string $email) {
-        try {
-                    } // Chiude il try block
-                    // DEBUG DETTAGLIATO
-        echo "<pre style='background: lightblue; padding: 20px; border: 3px solid blue;'>";
-        echo "=== DEBUG GET_USER ZOOM ===\n";
-        echo "Email cercata: " . htmlspecialchars($email) . "\n";
-        
-        // Verifica config
-        $sdk_key = get_config('mod_zoomsdk', 'sdk_key');
-        $sdk_secret = get_config('mod_zoomsdk', 'sdk_secret');
-        echo "SDK Key configurata: " . (empty($sdk_key) ? 'NO!' : 'Sì (' . substr($sdk_key, 0, 15) . '...)') . "\n";
-        echo "SDK Secret configurata: " . (empty($sdk_secret) ? 'NO!' : 'Sì (nascosto)') . "\n\n";
-        
-        try {
-            echo "Creando webservice...\n";
-            $service = new \mod_zoomsdk\webservice();
-            echo "Webservice creato OK!\n";
-            echo "Chiamo API Zoom con email: " . htmlspecialchars($email) . "\n\n";
+    /**
+ * Ottieni utente Zoom da email
+ */
+function zoomsdk_get_zoom_user(string $email) {
+    try {
+        $service = new \mod_zoomsdk\webservice();
+        $user = $service->get_user($email);
+        return $user;
+    } catch (Exception $e) {
+        error_log('Errore get_user Zoom - Email: ' . $email . ' - Errore: ' . $e->getMessage());
+        return false;
+    }
+}
 
-            $service = new \mod_zoomsdk\webservice();
-            $user = $service->get_user($email);
-                        
-            echo "<strong style='color: green;'>SUCCESS! User trovato:</strong>\n";
-            echo "ID: " . $user->id . "\n";
-            echo "Email: " . $user->email . "\n";
-            echo "</pre>\n";
-            
-            return $user;
-            
-            
-            // Log successo per debug
-            error_log('=== ZOOM USER TROVATO ===');
-            error_log('Email: ' . $email);
-            error_log('User ID: ' . ($user->id ?? 'N/A'));
-            error_log('=========================');
-            
-            return $user;
-            
-        } catch (Exception $e) {
-            // Log errore dettagliato
-                        
-            echo "<pre style='background: red; color: white; padding: 20px; border: 3px solid black;'>";
-            echo "=== ERRORE GET_USER ZOOM ===\n";
-            echo "Email cercata: " . htmlspecialchars($email) . "\n";
-            echo "Tipo Exception: " . get_class($se) . "\n";
-            echo "Messaggio errore: " . htmlspecialchars($se->getMessage()) . "\n";
-            echo "File: " . $se->getFile() . "\n";
-            echo "Line: " . $se->getLine() . "\n";
-            echo "============================\n";
-            echo "</pre>\n";
-            die();
-            
             error_log('=== ERRORE GET_USER ZOOM ===');
             error_log('Email cercata: ' . $email);
             error_log('Errore: ' . $e->getMessage());
