@@ -6,6 +6,7 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
+
 /**
  * Internal library of functions for module zoomsdk.
  *
@@ -14,7 +15,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
 defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * Crea un meeting Zoom tramite API
@@ -189,11 +192,9 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
         throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 
             'Zoom: ' . $e->getMessage());
     }
+}
 
 /**
- * Ottieni utente Zoom da email
- */
-    /**
  * Ottieni utente Zoom da email
  */
 function zoomsdk_get_zoom_user(string $email) {
@@ -207,15 +208,6 @@ function zoomsdk_get_zoom_user(string $email) {
     }
 }
 
-            error_log('=== ERRORE GET_USER ZOOM ===');
-            error_log('Email cercata: ' . $email);
-            error_log('Errore: ' . $e->getMessage());
-            error_log('============================');
-            
-            return false;
-        }
-    }
-
 /**
  * Elimina meeting Zoom
  */
@@ -227,3 +219,4 @@ function zoomsdk_delete_zoom_meeting(string $meetingid): void {
         error_log('Errore delete_meeting Zoom: ' . $e->getMessage());
     }
 }
+
