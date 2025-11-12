@@ -189,7 +189,6 @@ function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdCla
         throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 
             'Zoom: ' . $e->getMessage());
     }
-}
 
 /**
  * Ottieni utente Zoom da email
