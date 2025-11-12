@@ -36,15 +36,16 @@ class webservice {
      * Genera JWT token usando le credenziali del plugin zoom
      */
     private function generate_jwt_token() {
-        $config = get_config('zoom');
+        // Leggi le credenziali da mod_zoomsdk, NON da mod_zoom
+        $apikey = get_config('mod_zoomsdk', 'sdk_key');
+        $apisecret = get_config('mod_zoomsdk', 'sdk_secret');
         
-        if (empty($config->apikey) || empty($config->apisecret)) {
+        if (empty($apikey) || empty($apisecret)) {
             throw new \moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 
-                'Credenziali Zoom API (apikey/apisecret) non configurate in mod_zoom');
+                'Credenziali Zoom SDK (sdk_key/sdk_secret) non configurate. ' .
+                'Vai su: Amministrazione del sito → Plugin → Attività → Zoom SDK Meeting');
         }
-        
-        $apikey = $config->apikey;
-        $apisecret = $config->apisecret;
+
         
         // Header JWT
         $header = json_encode([
