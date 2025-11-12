@@ -1,82 +1,231 @@
 <?php
-// Internal library of functions for module zoomsdk.
-// Aggiornato per trasmettere tutte le opzioni sicurezza/media a Zoom SDK
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+/**
+ * Internal library of functions for module zoomsdk.
+ *
+ * @package    mod_zoomsdk
+ * @copyright  2025 Your Name
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Crea un meeting Zoom tramite API
+ */
 function zoomsdk_create_zoom_meeting(stdClass $data, string $hostuserid): stdClass {
     global $CFG;
-    require_once($CFG->dirroot . '/mod/zoom/classes/webservice.php');
-    $service = new \mod_zoom\webservice();
+    
+    require_once($CFG->dirroot . '/mod/zoomsdk/classes/webservice.php');
+    
+    // Determina il tipo di meeting
+    $meetingtype = 2; // Default: scheduled
+    if (!empty($data->recurring)) {
+        if (!empty($data->recurrence_type) && $data->recurrence_type == 8) {
+            $meetingtype = 8; // Recurring no fixed time
+        } else {
+            $meetingtype = 3; // Recurring with fixed time
+        }
+    }
+    
+    // Costruisci payload base
     $meetingdata = [
         'topic' => $data->name,
-        'type' => $data->meeting_type ?? 2,
-        'duration' => (int)ceil($data->duration / 60),
-        'settings' => [
-            // Sicurezza
-            'host_video' => !empty($data->option_host_video),
-            'participant_video' => !empty($data->option_participants_video),
-            'join_before_host' => !empty($data->option_jbh),
-            'waiting_room' => !empty($data->option_waiting_room),
-            'meeting_authentication' => !empty($data->option_authenticated_users),
-            'mute_upon_entry' => !empty($data->option_mute_upon_entry),
-            // Audio
-            'audio' => ($data->option_audio == 1) ? 'telephony' : ($data->option_audio == 2 ? 'voip' : 'both'),
-            // Registrazione automatica
-            'auto_recording' => ($data->option_auto_recording == 1) ? 'local' : ($data->option_auto_recording == 2 ? 'cloud' : 'none'),
-            // Password (se necessaria)
-            'password' => $data->meetingpassword ?? '',
-        ],
+        'type' => $meetingtype,
     ];
-    // Data/orario inizio (se non no fixed time)
-    if (in_array($data->meeting_type, [2,3]) && !empty($data->start_time)) {
+    
+    // Duration è obbligatoria SOLO per type 2 e 3, NON per type 8
+    if (in_array($meetingtype, [2, 3])) {
+        $meetingdata['duration'] = (int)ceil($data->duration / 60);
+    }
+    
+    // Start_time è obbligatorio SOLO per type 2 e 3, NON per type 8
+    if (in_array($meetingtype, [2, 3]) && !empty($data->start_time)) {
         $meetingdata['start_time'] = gmdate('Y-m-d\TH:i:s\Z', $data->start_time);
     }
-    // Ricorrenza
-    if (in_array($data->meeting_type, [3,8])) {
+    
+    // Aggiungi password se presente
+    if (!empty($data->meetingpassword)) {
+        $meetingdata['password'] = $data->meetingpassword;
+    }
+    
+    // SETTINGS - costruisci solo con valori validi
+    $settings = [];
+    
+    // Host video
+    if (isset($data->option_host_video)) {
+        $settings['host_video'] = (bool)$data->option_host_video;
+    }
+    
+    // Participant video
+    if (isset($data->option_participants_video)) {
+        $settings['participant_video'] = (bool)$data->option_participants_video;
+    }
+    
+    // Join before host (solo se waiting_room è disabilitata)
+    if (!empty($data->option_jbh) && empty($data->option_waiting_room)) {
+        $settings['join_before_host'] = true;
+    } else {
+        $settings['join_before_host'] = false;
+    }
+    
+    // Waiting room (solo se join_before_host è disabilitato)
+    if (!empty($data->option_waiting_room) && empty($data->option_jbh)) {
+        $settings['waiting_room'] = true;
+    } else {
+        $settings['waiting_room'] = false;
+    }
+    
+    // Meeting authentication
+    if (!empty($data->option_authenticated_users)) {
+        $settings['meeting_authentication'] = true;
+    }
+    
+    // Mute upon entry
+    if (isset($data->option_mute_upon_entry)) {
+        $settings['mute_upon_entry'] = (bool)$data->option_mute_upon_entry;
+    }
+    
+    // Audio options
+    if (!empty($data->option_audio)) {
+        switch ($data->option_audio) {
+            case 1:
+                $settings['audio'] = 'telephony';
+                break;
+            case 2:
+                $settings['audio'] = 'voip';
+                break;
+            case 3:
+                $settings['audio'] = 'both';
+                break;
+            default:
+                $settings['audio'] = 'both';
+        }
+    }
+    
+    // Auto recording
+    if (!empty($data->option_auto_recording)) {
+        switch ($data->option_auto_recording) {
+            case 1:
+                $settings['auto_recording'] = 'local';
+                break;
+            case 2:
+                $settings['auto_recording'] = 'cloud';
+                break;
+            default:
+                $settings['auto_recording'] = 'none';
+        }
+    }
+    
+    $meetingdata['settings'] = $settings;
+    
+    // RECURRENCE - SOLO per type 3 (recurring with fixed time)
+    // NON inviare MAI recurrence per type 8!
+    if ($meetingtype == 3 && !empty($data->recurrence_type) && $data->recurrence_type != 8) {
         $recurrence = [
-            'type' => $data->recurrence_type ?? 1,
+            'type' => (int)$data->recurrence_type,
+            'repeat_interval' => !empty($data->repeat_interval) ? (int)$data->repeat_interval : 1,
         ];
-        if (!empty($data->repeat_interval)) $recurrence['repeat_interval'] = (int)$data->repeat_interval;
-        if ($data->recurrence_type == 2 && !empty($data->weekly_days)) $recurrence['weekly_days'] = $data->weekly_days;
-        if ($data->recurrence_type == 3 && !empty($data->monthly_day)) $recurrence['monthly_day'] = (int)$data->monthly_day;
-        if ($data->recurrence_type == 3 && !empty($data->monthly_week)) $recurrence['monthly_week'] = (int)$data->monthly_week;
-        if ($data->recurrence_type == 3 && !empty($data->monthly_week_day)) $recurrence['monthly_week_day'] = (int)$data->monthly_week_day;
-        if (!empty($data->end_times)) $recurrence['end_times'] = (int)$data->end_times;
-        else if (!empty($data->end_date_time)) $recurrence['end_date_time'] = gmdate('Y-m-d\TH:i:s\Z', $data->end_date_time);
+        
+        // Weekly days (solo per recurrence_type = 2)
+        if ($data->recurrence_type == 2) {
+            if (!empty($data->weekly_days)) {
+                if (is_array($data->weekly_days)) {
+                    $days = [];
+                    foreach ($data->weekly_days as $day => $value) {
+                        if (!empty($value)) {
+                            $days[] = $day;
+                        }
+                    }
+                    if (!empty($days)) {
+                        $recurrence['weekly_days'] = implode(',', $days);
+                    } else {
+                        $recurrence['weekly_days'] = (string)((int)date('w') + 1);
+                    }
+                } else {
+                    $recurrence['weekly_days'] = $data->weekly_days;
+                }
+            } else {
+                $recurrence['weekly_days'] = (string)((int)date('w') + 1);
+            }
+        }
+        
+        // Monthly day (solo per recurrence_type = 3)
+        if ($data->recurrence_type == 3) {
+            $recurrence['monthly_day'] = !empty($data->monthly_day) ? (int)$data->monthly_day : (int)date('j');
+        }
+        
+        // End times o End date
+        if (!empty($data->end_times) && $data->end_times > 0) {
+            $recurrence['end_times'] = min((int)$data->end_times, 60);
+        } else if (!empty($data->end_date_time)) {
+            $recurrence['end_date_time'] = gmdate('Y-m-d\TH:i:s\Z', $data->end_date_time);
+        } else {
+            $recurrence['end_times'] = 10;
+        }
+        
         $meetingdata['recurrence'] = $recurrence;
     }
-    $url = "users/{$hostuserid}/meetings";
+    
+    // Usa il nostro webservice indipendente
     try {
-        $reflection = new ReflectionClass($service);
-        $method = $reflection->getMethod('make_call');
-        $method->setAccessible(true);
-        $response = $method->invoke($service, $url, $meetingdata, 'post');
+        $service = new \mod_zoomsdk\webservice();
+        $response = $service->make_call("users/{$hostuserid}/meetings", $meetingdata, 'post');
+        
         if (empty($response->id)) {
-            throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 'Meeting ID is empty in API response');
+            throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 
+                'Meeting ID vuoto nella risposta API');
         }
+        
         return $response;
+        
     } catch (Exception $e) {
-        throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, $e->getMessage());
+        throw new moodle_exception('apicallfailed', 'mod_zoomsdk', '', null, 
+            'Zoom: ' . $e->getMessage());
     }
 }
 
-function zoomsdk_get_zoom_user(string $email) {
-    global $CFG;
-    if (!file_exists($CFG->dirroot . '/mod/zoom/classes/webservice.php')) return false;
-    require_once($CFG->dirroot . '/mod/zoom/classes/webservice.php');
-    try {
-        $service = new \mod_zoom\webservice();
-        return $service->get_user($email);
-    } catch (Exception $e) { return false; }
-}
+/**
+ * Ottieni utente Zoom da email
+ */
+    function zoomsdk_get_zoom_user(string $email) {
+        try {
+            $service = new \mod_zoomsdk\webservice();
+            $user = $service->get_user($email);
+            
+            // Log successo per debug
+            error_log('=== ZOOM USER TROVATO ===');
+            error_log('Email: ' . $email);
+            error_log('User ID: ' . ($user->id ?? 'N/A'));
+            error_log('=========================');
+            
+            return $user;
+            
+        } catch (Exception $e) {
+            // Log errore dettagliato
+            error_log('=== ERRORE GET_USER ZOOM ===');
+            error_log('Email cercata: ' . $email);
+            error_log('Errore: ' . $e->getMessage());
+            error_log('============================');
+            
+            return false;
+        }
+    }
 
+/**
+ * Elimina meeting Zoom
+ */
 function zoomsdk_delete_zoom_meeting(string $meetingid): void {
-    global $CFG;
-    if (!file_exists($CFG->dirroot . '/mod/zoom/classes/webservice.php')) return;
-    require_once($CFG->dirroot . '/mod/zoom/classes/webservice.php');
     try {
-        $service = new \mod_zoom\webservice();
-        $service->delete_meeting($meetingid, false);
-    } catch (Exception $e) {}
+        $service = new \mod_zoomsdk\webservice();
+        $service->delete_meeting($meetingid);
+    } catch (Exception $e) {
+        error_log('Errore delete_meeting Zoom: ' . $e->getMessage());
+    }
 }

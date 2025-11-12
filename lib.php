@@ -30,12 +30,21 @@ function zoomsdk_add_instance(stdClass $moduleinstance, $mform = null): int {
     global $DB, $USER;
     $moduleinstance->timecreated = time();
     $moduleinstance->timemodified = time();
+
     // ... verifica config Zoom ...
-    // Ottieni host Zoom
     $zoomuser = zoomsdk_get_zoom_user($USER->email);
     if (!$zoomuser) {
-        throw new moodle_exception('zoomusernotfound', 'mod_zoomsdk');
+        // Log dettagliato per debug
+        error_log('=== ZOOM USER NOT FOUND ===');
+        error_log('Email cercata: ' . $USER->email);
+        error_log('User Moodle: ' . $USER->firstname . ' ' . $USER->lastname);
+        error_log('===========================');
+        
+        throw new moodle_exception('zoomusernotfound', 'mod_zoomsdk', '', null,
+            'Utente Zoom non trovato per email: ' . $USER->email . '. ' .
+            'Verifica che questa email sia registrata come utente su Zoom e che le credenziali API siano corrette.');
     }
+    
     // Passa tutte le nuove opzioni a zoomsdk_create_zoom_meeting (vedi sotto)
     try {
         $meeting = zoomsdk_create_zoom_meeting($moduleinstance, $zoomuser->id);

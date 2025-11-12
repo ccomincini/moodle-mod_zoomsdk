@@ -1,4 +1,3 @@
-
 <?php
 // This file is part of Moodle - http://moodle.org/
 //
@@ -51,16 +50,20 @@ class mod_zoomsdk_mod_form extends moodleform_mod {
         $mform->addElement('advcheckbox', 'requirepasscode', get_string('requirepasscode', 'mod_zoomsdk'));
         $mform->setDefault('requirepasscode', 1);
         
+        // Password auto-generata
+        $autopass = $this->generate_auto_password();
         $mform->addElement('text', 'meetingpassword', get_string('meetingpassword', 'mod_zoomsdk'), ['maxlength' => 10]);
         $mform->setType('meetingpassword', PARAM_TEXT);
+        $mform->setDefault('meetingpassword', $autopass);
         $mform->addRule('meetingpassword', get_string('err_password_required', 'mod_zoomsdk'), 'required', null, 'client');
         $mform->addHelpButton('meetingpassword', 'passwordhelp', 'mod_zoomsdk');
         
-        $mform->addElement('advcheckbox', 'option_waiting_room', get_string('option_waiting_room', 'mod_zoomsdk'));
-        $mform->setDefault('option_waiting_room', 1);
-        
-        $mform->addElement('advcheckbox', 'option_jbh', get_string('option_jbh', 'mod_zoomsdk'));
-        $mform->setDefault('option_jbh', 0);
+        // Radio button: sala d'attesa vs join before host (mutualmente esclusivi)
+        $radioarray = [];
+        $radioarray[] = $mform->createElement('radio', 'access_option', '', get_string('option_waiting_room', 'mod_zoomsdk'), 'waiting_room');
+        $radioarray[] = $mform->createElement('radio', 'access_option', '', get_string('option_jbh', 'mod_zoomsdk'), 'join_before_host');
+        $mform->addGroup($radioarray, 'access_option_group', 'Modalità accesso partecipanti', '<br>', false);
+        $mform->setDefault('access_option', 'waiting_room');
         
         $mform->addElement('advcheckbox', 'option_authenticated_users', get_string('option_authenticated_users', 'mod_zoomsdk'));
         $mform->setDefault('option_authenticated_users', 0);
@@ -98,7 +101,7 @@ class mod_zoomsdk_mod_form extends moodleform_mod {
         $mform->addElement('header', 'schedule', get_string('schedule', 'mod_zoomsdk'));
         
         $mform->addElement('date_time_selector', 'start_time', get_string('starttime', 'mod_zoomsdk'));
-        $mform->setDefault('start_time', time() + 3600);
+        $mform->setDefault('start_time', time() + 120); // +2 minuti
         
         $mform->addElement('duration', 'duration', get_string('duration', 'mod_zoomsdk'), ['optional' => false]);
         $mform->setDefault('duration', 3600);
@@ -156,11 +159,34 @@ class mod_zoomsdk_mod_form extends moodleform_mod {
         $this->add_action_buttons();
     }
 
+    /**
+     * Genera password automatica (8 caratteri alfanumerici)
+     */
+    private function generate_auto_password() {
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $password = '';
+        for ($i = 0; $i < 8; $i++) {
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        return $password;
+    }
+
     public function get_data() {
         $data = parent::get_data();
         
         if ($data) {
-            // Normalizzazione end_times: se è array, prendi il primo valore valido
+            // Converti access_option in option_waiting_room e option_jbh
+            if (isset($data->access_option)) {
+                if ($data->access_option === 'waiting_room') {
+                    $data->option_waiting_room = 1;
+                    $data->option_jbh = 0;
+                } else {
+                    $data->option_waiting_room = 0;
+                    $data->option_jbh = 1;
+                }
+            }
+            
+            // Normalizzazione end_times
             if (isset($data->end_times) && is_array($data->end_times)) {
                 $vals = array_filter($data->end_times, function($v) { 
                     return $v !== '' && $v !== null; 
@@ -170,9 +196,17 @@ class mod_zoomsdk_mod_form extends moodleform_mod {
                 $data->end_times = (int)$data->end_times;
             }
             
-            // Forza meeting_type se manca
+            // Forza meeting_type basandosi sul tipo di ricorrenza
             if (empty($data->meeting_type)) {
-                $data->meeting_type = (!empty($data->recurring)) ? 3 : 2;
+                if (!empty($data->recurring)) {
+                    if (!empty($data->recurrence_type) && $data->recurrence_type == 8) {
+                        $data->meeting_type = 8; // Ricorrente senza orario fisso
+                    } else {
+                        $data->meeting_type = 3; // Ricorrente con orario fisso
+                    }
+                } else {
+                    $data->meeting_type = 2; // Meeting programmato normale
+                }
             }
         }
         
